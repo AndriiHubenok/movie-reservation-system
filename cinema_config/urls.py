@@ -26,4 +26,8 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     path('api/', include('movies.urls')),
+
+    path('api/', include('users.urls')),
+
+    path('api/', include('reservations.urls')),
 ]
