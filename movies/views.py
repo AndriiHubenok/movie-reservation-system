@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets
+from rest_framework.decorators import action
 
 from movies.models import Movie, Showtime
 from movies.permissions import IsAdminOrReadOnly

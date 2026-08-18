@@ -22,7 +22,8 @@ class MovieSerializer(serializers.ModelSerializer):
 class ShowtimeSerializer(serializers.ModelSerializer):
 
     movie_title = serializers.CharField(source='movie.title', read_only=True)
+    hall_title = serializers.CharField(source='hall.title', read_only=True)
 
     class Meta:
         model = Showtime
-        fields = ['id', 'movie', 'movie_title', 'start_time', 'end_time', 'price']
+        fields = ['id', 'movie', 'movie_title', 'hall_title', 'start_time', 'end_time', 'price']
