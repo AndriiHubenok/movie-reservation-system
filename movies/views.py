@@ -1,4 +1,4 @@
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, ExpressionWrapper, F, IntegerField, DecimalField, FloatField
 from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -25,7 +25,7 @@ class MovieViewSet(viewsets.ModelViewSet):
         return queryset
 
 class ShowtimeViewSet(viewsets.ModelViewSet):
-    queryset = Showtime.objects.all()
+    queryset = Showtime.objects.select_related('movie', 'hall').all()
     serializer_class = ShowtimeSerializer
     permission_classes = [IsAdminOrReadOnly]
 
@@ -58,11 +58,12 @@ class ShowtimeViewSet(viewsets.ModelViewSet):
 
         return Response({"available_seats": available_seats_data})
 
-class AdminReportView(APIView):
+class AdminMovieReportView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        total_stats = Reservation.objects.filter(status='confirmed').aggregate(
+
+        total_stats = Reservation.objects.filter(status='pending').aggregate(
             total_revenue=Sum('showtime__price'),
             total_tickets=Count('id')
         )
@@ -72,11 +73,11 @@ class AdminReportView(APIView):
                 'showtimes__reservations',
                 filter=Q(showtimes__reservations__status='pending')
             ),
-            movie_revenue=Sum(
+            revenue=Sum(
                 'showtimes__reservations__showtime__price',
                 filter=Q(showtimes__reservations__status='pending')
             )
-        ).order_by('-movie_revenue')
+        ).order_by('-revenue')
 
         report_data = {
             "overall": {
@@ -85,11 +86,72 @@ class AdminReportView(APIView):
             },
             "by_movie": [
                 {
+                    "id": movie.id,
                     "title": movie.title,
                     "tickets_sold": movie.sold_tickets,
-                    "revenue": movie.movie_revenue or 0
+                    "revenue": movie.revenue or 0
                 }
                 for movie in movies_report
+            ]
+        }
+
+        return Response(report_data)
+
+class AdminShowtimeReportView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        total_stats = Reservation.objects.filter(status='pending').aggregate(
+            total_revenue=Sum('showtime__price'),
+            total_tickets=Count('id')
+        )
+
+        showtime_report = Showtime.objects.select_related('movie', 'hall').annotate(
+            sold_tickets=Count(
+                'reservations',
+                filter=Q(reservations__status='pending'),
+                distinct=True
+            ),
+            total_seats=Count(
+                'hall__seats',
+                distinct=True
+            )
+        ).annotate(
+            available_seats=ExpressionWrapper(
+                F('total_seats') - F('sold_tickets'),
+                output_field=IntegerField()
+            ),
+            hall_load=ExpressionWrapper(
+                F('sold_tickets') * 100.0 / F('total_seats'),
+                output_field=FloatField()
+            ),
+            revenue=ExpressionWrapper(
+                F('sold_tickets') * F('price'),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        ).order_by('-revenue')
+
+        report_data = {
+            "overall": {
+                "revenue": total_stats['total_revenue'] or 0,
+                "tickets_sold": total_stats['total_tickets']
+            },
+            "by_movie": [
+                {
+                    "id": showtime.id,
+                    "movie_id": showtime.movie.id,
+                    "movie": showtime.movie.title,
+                    "hall_id": showtime.hall.id,
+                    "hall": showtime.hall.name,
+                    "start_time": showtime.start_time,
+                    "end_time": showtime.end_time,
+                    "total_seats": showtime.total_seats,
+                    "tickets_sold": showtime.sold_tickets,
+                    "available_seats": showtime.available_seats,
+                    "hall_load": showtime.hall_load,
+                    "revenue": showtime.revenue or 0,
+                }
+                for showtime in showtime_report
             ]
         }
 
