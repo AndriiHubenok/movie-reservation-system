@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 
 from movies.models import Showtime, Seat
 from reservations.models import Reservation
+from .tasks import cancel_unpaid_reservation
 
 
 class ReservationSerializer(serializers.ModelSerializer):
@@ -37,6 +38,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                 seat=locked_seat,
                 status='pending'
             )
+            cancel_unpaid_reservation.apply_async((reservation.id,), countdown=900)
 
         return reservation
 

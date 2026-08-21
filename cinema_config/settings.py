@@ -9,12 +9,14 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
-
+import logging
+import os
+import urllib
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -150,3 +152,16 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+load_dotenv(BASE_DIR / '.env')
+
+raw_user = os.getenv('RABBITMQ_USER', '').strip()
+raw_password = os.getenv('RABBITMQ_PASSWORD', '').strip()
+encoded_user = urllib.parse.quote_plus(raw_user)
+encoded_password = urllib.parse.quote_plus(raw_password)
+
+CELERY_BROKER_URL = f'amqp://{encoded_user}:{encoded_password}@localhost:5672//'
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.debug(f"CELERY_BROKER_URL = {CELERY_BROKER_URL}")

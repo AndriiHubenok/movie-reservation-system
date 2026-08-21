@@ -1,3 +1,23 @@
+# Environment variables
+.env
+.env.example
+
+# IDE
 .idea
-.venv
+.vscode
+
+# Virtual environment
+.venv/
+
+# Database
 db.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
