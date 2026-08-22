@@ -18,6 +18,8 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / '.env')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
@@ -81,10 +83,19 @@ WSGI_APPLICATION = 'cinema_config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+db_name = os.getenv('POSTGRES_DB_NAME', '').strip()
+db_user = os.getenv('POSTGRES_DB_USER', '').strip()
+db_password = os.getenv('POSTGRES_DB_PASSWORD', '').strip()
+db_host = os.getenv('POSTGRES_DB_HOST', 'localhost').strip()
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': db_name,
+        'USER': db_user,
+        'PASSWORD': db_password,
+        'HOST': db_host,
+        'PORT': 5432,
     }
 }
 
@@ -153,15 +164,9 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-load_dotenv(BASE_DIR / '.env')
-
 raw_user = os.getenv('RABBITMQ_USER', '').strip()
 raw_password = os.getenv('RABBITMQ_PASSWORD', '').strip()
 encoded_user = urllib.parse.quote_plus(raw_user)
 encoded_password = urllib.parse.quote_plus(raw_password)
 
 CELERY_BROKER_URL = f'amqp://{encoded_user}:{encoded_password}@localhost:5672//'
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-logger.debug(f"CELERY_BROKER_URL = {CELERY_BROKER_URL}")

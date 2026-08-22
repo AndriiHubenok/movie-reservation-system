@@ -30,7 +30,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             ).exists()
 
             if is_taken:
-                raise ValidationError({"seat": "Це місце вже заброньовано на даний сеанс."})
+                raise ValidationError({"seat": "This seat is already reserved for the selected showtime."})
 
             reservation = Reservation.objects.create(
                 user=user,
